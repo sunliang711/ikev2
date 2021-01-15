@@ -161,7 +161,7 @@ _cacert(){
     fi
 
     if [ -n "$ca_cert" ];then
-        if [ ! -f "ca_cert" ];then
+        if [ ! -f "$ca_cert" ];then
             echo "ca_cert: $ca_cert not exist"
             exit 1
         fi
