@@ -95,6 +95,13 @@ declare -a accounts=(
 )
 
 install(){
+    echo "Use env var 'ca_key' to import ca key file"
+    echo "Use env var 'ca_cert' to import ca cert file"
+    echo "Press <Enter> to continue, press <ctrl-c> to quit"
+    read xx
+
+    _check
+
     echo "Install strongswan strongswan-pki"
     _runAsRoot "apt install strongswan strongswan-pki libcharon-extra-plugins -y" || { echo "Install strongswan failed!"; exit 1; }
     _runAsRoot "systemctl disable --now strongswan"
@@ -123,14 +130,50 @@ install(){
 
 }
 
-# Create ca cer
-_cacert(){
-    echo "Create CA key"
-    ipsec pki --gen --type rsa --size 4096 --outform pem > ${certDir}/private/${caKey}
+_check(){
+    echo "ca_key: $ca_key"
+    echo "ca_cert: $ca_cert"
+    # Must exist at the same time
+    if [ -n "$ca_key" ] && [ -z "$ca_cert" ];then
+        echo "${RED}Specify ca_key but not specify ca_cert${NORMAL}"
+        exit 1
+    fi
+    if [ -z "$ca_key" ] && [ -n "$ca_cert" ];then
+        echo "${RED}Specify ca_cert but not specify ca_key${NORMAL}"
+        exit 1
+    fi
 
-    echo "Create CA cert"
-    ipsec pki --self --ca --lifetime 3650 --in ${certDir}/private/${caKey} --type rsa \
-              --dn "${dn}" --outform pem > ${certDir}/cacerts/${caCert}
+}
+
+# Create ca cert
+_cacert(){
+    if [ -n "$ca_key" ];then
+        if [ ! -f "$ca_key" ];then
+            echo "ca_key: $ca_key not exist"
+            exit 1
+        fi
+        echo "Env ca_key is not empty,use it"
+        cp ${ca_key} ${certDir}/private/${caKey} || { echo "copy ca key failed!"; exit 1; }
+    else
+        echo "Env ca_key is empty,create new ca key"
+        echo "Create CA key"
+        ipsec pki --gen --type rsa --size 4096 --outform pem > ${certDir}/private/${caKey}
+    fi
+
+    if [ -n "$ca_cert" ];then
+        if [ ! -f "ca_cert" ];then
+            echo "ca_cert: $ca_cert not exist"
+            exit 1
+        fi
+        echo "Env ca_cert is not empty, use it"
+        cp ${ca_cert} ${certDir}/cacerts/${caCert} || { echo "copy ca cert failed!"; exit 1; }
+    else
+        echo "Env ca_cert is empty, create new ca cert"
+        echo "Create CA cert"
+        ipsec pki --self --ca --lifetime 3650 --in ${certDir}/private/${caKey} --type rsa \
+                  --dn "${dn}" --outform pem > ${certDir}/cacerts/${caCert}
+    fi
+
 }
 
 # Create server cert
