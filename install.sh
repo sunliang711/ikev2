@@ -127,6 +127,7 @@ install(){
     _runAsRoot "mv /tmp/ikev2.service /etc/systemd/system/ikev2.service"
     _runAsRoot "systemctl daemon-reload"
     _runAsRoot "systemctl enable --now ikev2.service"
+    _runAsRoot "systemctl restart ikev2.service"
 
 }
 
