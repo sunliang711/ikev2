@@ -1,0 +1,2 @@
+config/ipsec.conf配置了dns:
+    rightdns=10.1.1.110
